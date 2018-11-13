@@ -1,0 +1,4 @@
+use yling_prd;
+insert overwrite table ecard_bus_statistics_result select sum(total) as alltotal, count(*) as numdays, buslocation , consumehour from (select  /*+ MAPJOIN(ecard_bus_consume_record)*/ count(1) as total,a.classification as buslocation,to_date(b.createat) as consumedate, hour(b.createat) as consumehour from ecard_bus_consume_record b  join ecard_bus_location_result a on a.code = b.poscode where to_date(a.createat) = to_date(b.createat) and hour(a.createat)=hour(b.createat) and (minute(a.createat)-minute(b.createat)) >= 0 and (minute(a.createat)-minute(b.createat)) < 1  group by a.classification,to_date(b.createat),hour(b.createat)) c group by  c.consumehour,c.buslocation;
+
+insert overwrite table ecard_bus_site_statistics select a.bussitename,a.sitelat,a.sitelon,b.alltotal, b.numdays,b.consumehour,b.buslocation from ecard_bus_site_info a left join  ecard_bus_statistics_result b on a.buslocation = b.buslocation; 

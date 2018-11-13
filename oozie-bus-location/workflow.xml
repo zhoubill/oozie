@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<workflow-app xmlns="uri:oozie:workflow:0.5" name="sqoop-wf">
+    <global/>
+    <start to="sqoop"/>
+    <action name="sqoop">
+        <sqoop xmlns="uri:oozie:sqoop-action:0.4">
+            <job-tracker>${resourceManager}</job-tracker>
+            <name-node>${nameNode}</name-node>
+			<arg>import</arg>
+                        <arg>--connect</arg>
+                        <arg>jdbc:mysql://xxx.xxx.xxx.xxx:3306/ecard_db_dev</arg>
+			<arg>--username</arg>
+                        <arg>root</arg>
+			<arg>--password</arg>
+                        <arg>xxxxxx</arg>
+                        <arg>--query</arg>
+                        <arg>select * from ${source_table} where $CONDITIONS and createAt &gt;= '${startTime}' and createAt &lt; '${endTime}'</arg>
+			<arg>--fields-terminated-by</arg>
+                        <arg>","</arg>
+			<arg>--lines-terminated-by</arg>
+                        <arg>"\n"</arg>
+                        <arg>--null-string</arg>
+                        <arg>"\\N"</arg>
+                        <arg>--null-non-string</arg>
+                        <arg>"\\N"</arg>
+                        <arg>--target-dir</arg>
+                        <arg>${outputPath}</arg>
+			<arg>-m</arg>
+			<arg>1</arg>
+                        <file>lib/hive-site.xml</file>
+                        <file>lib/tez-site.xml</file>
+        </sqoop>
+        <ok to="deleteData"/>
+        <error to="kill"/>
+    </action>
+	
+    <action name="deleteData">
+        <sqoop xmlns="uri:oozie:sqoop-action:0.4">
+            <job-tracker>${resourceManager}</job-tracker>
+            <name-node>${nameNode}</name-node>
+			<arg>eval</arg>
+                        <arg>--connect</arg>
+                        <arg>jdbc:mysql://xxxx.xxxx.xxxx.xxxx:3306/ecard_db_dev</arg>
+			<arg>--username</arg>
+                        <arg>root</arg>
+			<arg>--password</arg>
+                        <arg>xxxxx</arg>
+			<arg>--query</arg>
+                        <arg>"delete from ecard_bus_location_info where  createAt &gt;= '${startTime}' and createAt &lt; '${endTime}' "</arg>
+                        <file>lib/hive-site.xml</file>
+                        <file>lib/tez-site.xml</file>
+        </sqoop>
+        <ok to="end"/>
+        <error to="kill"/>
+    </action>
+	
+    <kill name="kill">
+        <message>${wf:errorMessage(wf:lastErrorNode())}</message>
+    </kill>
+    <end name="end"/>
+	
+	
+	
+</workflow-app>
+

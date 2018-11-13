@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<workflow-app xmlns="uri:oozie:workflow:0.5" name="sqoop-wf">
+    <global/>
+    <start to="sqoop-ecard"/>
+	
+      <action name="sqoop-ecard">
+        <sqoop xmlns="uri:oozie:sqoop-action:0.4">
+            <job-tracker>${resourceManager}</job-tracker>
+            <name-node>${nameNode}</name-node>
+	    	<arg>import</arg>
+            	<arg>--connect</arg>
+            	<arg>jdbc:mysql://xxxx.xxxx.xxxx.xxxx:3306/ecard_db_dev</arg>
+	    	<arg>--username</arg>
+            	<arg>root</arg>
+	    	<arg>--password</arg>
+            	<arg>yly@2016</arg>
+            	<arg>--query</arg>
+            	<arg>SELECT e_his.createAt as createat,b_person.mobile_phone as mobilephone,b_person.userLevel as userlevel,e_his.pos_info as poscode,e_payee.code as code,e_pos.lineNo as lineno,e_pos.carNo as carno,e_his.user_acc_id as userid FROM ecard_consume_tran_hist e_his LEFT JOIN bd_personal_base_info b_person on e_his.user_acc_id = b_person.user_account_id LEFT JOIN ecard_payee e_payee on e_his.payee_code = e_payee.code LEFT JOIN ecard_posinfo e_pos on e_his.pos_info = e_pos.posNo WHERE e_his.business_code = '0001' and e_payee.code = '61040301002' AND $CONDITIONS</arg>
+            	<arg>--null-string</arg>
+            	<arg>"\\N"</arg>
+            	<arg>--null-non-string</arg>
+            	<arg>"\\N"</arg>
+            	<arg>--fields-terminated-by</arg>
+            	<arg>","</arg>
+            	<arg>--target-dir</arg>
+            	<arg>hdfs://xxxxxxx:8020/apps/hive/warehouse/yling_prd.db/ecard_bus_consume_record</arg>
+            	<arg>--incremental</arg>
+            	<arg>lastmodified</arg>
+            	<arg>--check-column</arg>
+            	<arg>createat</arg>
+            	<arg>--last-value</arg>
+            	<arg>${startTime}</arg>
+	    	<arg>--merge-key</arg>
+	    	<arg>id</arg>
+	    	<arg>-m</arg>
+	    	<arg>1</arg>
+            	<file>lib/hive-site.xml</file>
+            	<file>lib/tez-site.xml</file>
+        </sqoop>
+        <ok to="insertData-agri"/>
+        <error to="fail"/>
+    </action>
+
+	
+    <action name="insertData-agri">
+        <shell xmlns="uri:oozie:shell-action:0.2">
+            <job-tracker>${resourceManager}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <configuration>
+                <property>
+                    <name>mapred.job.queue.name</name>
+                    <value>${queueName}</value>
+                </property>
+            </configuration>
+            <exec>${EXEC}</exec>
+            <file>${nameNode}/user/${examplesRoot}/apps/bus-site/${EXEC}#${EXEC}</file>
+            <file>${nameNode}/user/${examplesRoot}/apps/bus-site/${script}#${script}</file>
+        </shell>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+    <kill name="fail">
+        <message>Shell action failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>
