@@ -1,0 +1,5 @@
+add jar hdfs://bigdata-hdp01.yling.com:8020/hiveudf/GenericUDFUuid.jar;
+create temporary function uuid as 'com.yling.hive.udf.GenericUDFUuid';
+use yling_prd;
+INSERT overwrite TABLE mall_order_info_summary  SELECT  CONCAT(UUID(),'-',UNIX_TIMESTAMP()) AS KEY, to_date(createat) AS TIME, COUNT(*) AS totalnum, 0.00 AS price  , 1 AS STATUS FROM  mall_order_info WHERE appid='app008' AND (orderType='2' OR orderType='3') AND paymentStatus='2' AND createat >='${hiveconf:daily_param}' GROUP BY to_date(createat);
+INSERT overwrite TABLE mall_order_info_summary  SELECT  CONCAT(UUID(),'-',UNIX_TIMESTAMP()) AS KEY, to_date(createat) AS TIME, 0 AS totalnum, SUM(totalPriceOrigin) AS price, 0 AS STATUS FROM  mall_order_info WHERE appid='app008' AND (orderType='2' OR orderType='3') AND paymentStatus='2' AND createat >='${hiveconf:daily_param}' GROUP BY to_date(createat);

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<workflow-app xmlns="uri:oozie:workflow:0.5" name="sqoop-wf">
+    <global/>
+    <start to="sqoop-agri"/>
+	
+      <action name="sqoop-agri">
+        <sqoop xmlns="uri:oozie:sqoop-action:0.4">
+            <job-tracker>${resourceManager}</job-tracker>
+            <name-node>${nameNode}</name-node>
+	    	<arg>import</arg>
+            	<arg>--connect</arg>
+            	<arg>jdbc:mysql://10.176.4.70:3306/fsp_sc_db_0523</arg>
+	    	<arg>--username</arg>
+            	<arg>root</arg>
+	    	<arg>--password</arg>
+            	<arg>yly@2016</arg>
+            	<arg>--query</arg>
+            	<arg>SELECT id,appid,product_type,status,updateAt FROM mall_agriculture_product WHERE  product_type='2' AND $CONDITIONS</arg>
+            	<arg>--null-string</arg>
+            	<arg>"\\N"</arg>
+            	<arg>--null-non-string</arg>
+            	<arg>"\\N"</arg>
+            	<arg>--fields-terminated-by</arg>
+            	<arg>","</arg>
+            	<arg>--target-dir</arg>
+            	<arg>hdfs://bigdata-hdp01.yling.com:8020/apps/hive/warehouse/yling_prd.db/mall_agriculture_product</arg>
+            	<arg>--incremental</arg>
+            	<arg>lastmodified</arg>
+            	<arg>--check-column</arg>
+            	<arg>updateAt</arg>
+            	<arg>--last-value</arg>
+            	<arg>${startTime}</arg>
+	    	<arg>--merge-key</arg>
+	    	<arg>id</arg>
+	    	<arg>-m</arg>
+	    	<arg>1</arg>
+            	<file>lib/hive-site.xml</file>
+            	<file>lib/tez-site.xml</file>
+        </sqoop>
+        <ok to="insertData-agri"/>
+        <error to="fail"/>
+    </action>
+
+	
+    <action name="insertData-agri">
+        <shell xmlns="uri:oozie:shell-action:0.2">
+            <job-tracker>${resourceManager}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <configuration>
+                <property>
+                    <name>mapred.job.queue.name</name>
+                    <value>${queueName}</value>
+                </property>
+            </configuration>
+            <exec>${EXEC}</exec>
+            <file>${nameNode}/user/${examplesRoot}/apps/agri-product/${EXEC}#${EXEC}</file>
+            <file>${nameNode}/user/${examplesRoot}/apps/agri-product/${script}#${script}</file>
+        </shell>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+    <kill name="fail">
+        <message>Shell action failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>
